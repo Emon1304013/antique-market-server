@@ -3,7 +3,7 @@ const cors = require("cors");
 
 require("dotenv").config();
 const jwt = require("jsonwebtoken");
-const { MongoClient, ServerApiVersion } = require("mongodb");
+const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
 const port = process.env.PORT || 5000;
 
@@ -60,6 +60,15 @@ app.put("/user/:email", async (req, res) => {
 app.get('/categories',async(req,res)=>{
   const query = {}
   const result = await categoriesCollection.find(query).toArray();
+  res.send(result);
+})
+
+// get single category data 
+app.get('/categories/:id',async(req,res)=>{
+  const id = req.params.id;
+  console.log(id);
+  const query = {categoryId: id}
+  const result = await productsCollection.find(query).toArray();
   res.send(result);
 })
 // add categories to the database 
