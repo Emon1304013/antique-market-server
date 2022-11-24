@@ -39,13 +39,13 @@ app.put("/user/:email", async (req, res) => {
     const email = req.params.email;
     console.log(email);
     const user = req.body;
+    console.log(user);
     const filter = { email: email };
     const options = { upsert: true };
     const updateDoc = {
       $set: user,
     };
     const result = await usersCollection.updateOne(filter, updateDoc, options);
-    console.log(result);
 
     const token = jwt.sign(user, process.env.JWT_SECRET, { expiresIn: "1d" });
 
@@ -55,13 +55,28 @@ app.put("/user/:email", async (req, res) => {
   }
 });
 
+// get categories from database 
+
+app.get('/categories',async(req,res)=>{
+  const query = {}
+  const result = await categoriesCollection.find(query).toArray();
+  res.send(result);
+})
 // add categories to the database 
 
 app.post('/categories',async(req,res)=>{
   try{  
     const category = req.body;
+    const categoryName = req.body.categoryName;
+    const query = {categoryName: categoryName}
+    const result1 = await categoriesCollection.findOne(query)
+    console.log(categoryName,result1);
+    if(result1){
+      return res.send({success:false,message:"Category Already Added"})
+    }
+
     const result = await categoriesCollection.insertOne(category)
-    res.send(result)
+    res.send({success:true,result})
   }
   catch(err) {
     console.log(err);
