@@ -31,6 +31,7 @@ dbConnect();
 // creating Database collection
 const usersCollection = client.db("antique-market").collection("users");
 const productsCollection = client.db("antique-market").collection("products");
+const categoriesCollection = client.db("antique-market").collection("categories");
 
 // save user email and generate jwt
 app.put("/user/:email", async (req, res) => {
@@ -53,6 +54,19 @@ app.put("/user/:email", async (req, res) => {
     console.log(err);
   }
 });
+
+// add categories to the database 
+
+app.post('/categories',async(req,res)=>{
+  try{  
+    const category = req.body;
+    const result = await categoriesCollection.insertOne(category)
+    res.send(result)
+  }
+  catch(err) {
+    console.log(err);
+  }
+})
 
 //add product to database
 app.post("/products", async(req,res) => {
