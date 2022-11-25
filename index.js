@@ -12,7 +12,7 @@ app.use(express.json());
 
 function verifyJWT(req, res, next) {
   const authHeader = req.headers.authorization;
-  // console.log("Inside verifyjwt", authHeader);
+  console.log("Inside verifyjwt", authHeader);
   if (!authHeader) {
     return res.status(401).send("Unauthorised Access");
   }
@@ -81,8 +81,10 @@ app.put("/user/:email", async (req, res) => {
       $set: user,
     };
     const result = await usersCollection.updateOne(filter, updateDoc, options);
+    newUser = {email:email}
+    console.log(newUser);
 
-    const token = jwt.sign(user, process.env.JWT_SECRET, { expiresIn: "1d" });
+    const token = jwt.sign(newUser, process.env.JWT_SECRET, { expiresIn: "1d" });
 
     res.send({ result, token });
   } catch (err) {
@@ -146,15 +148,21 @@ app.get("/products",verifyJWT, async (req, res) => {
   const result = await productsCollection.find(query).toArray();
   res.send(result);
 });
+// Get Products from specific seller 
+app.get("/products/seller/:email",verifyJWT,async(req,res)=>{
+  const email = req.params.email;
+  const query = {sellerEmail:email};
+  const result = await productsCollection.find(query).toArray();
+  res.send(result);
+})
 //add product to database
-app.post("/products", async (req, res) => {
+app.post("/products",verifyJWT, async (req, res) => {
   try {
     const decodedEmail = req.decoded.email;
-    if(decodedEmail !== req.body.emai){
+    if(decodedEmail !== req.decoded.email){
       return res.status(401).send("Unauthorized access")
     }
     const product = req.body;
-    console.log(product);
     const result = await productsCollection.insertOne(product);
     res.send(result);
   } catch (err) {
