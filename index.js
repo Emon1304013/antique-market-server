@@ -118,6 +118,15 @@ app.get('/users/sellers',verifyJWT,async(req,res)=>{
   const result = await usersCollection.find(query).toArray();
   res.send(result);
 })
+
+// Delete seller from Database  
+
+app.delete('/users/seller/:id',async(req,res)=>{
+  const id = req.params.id;
+  const query = {_id: ObjectId(id)}
+  const result = await usersCollection.deleteOne(query);
+  res.send(result);
+})
 // get categories from database
 
 app.get("/categories", async (req, res) => {
