@@ -111,6 +111,13 @@ app.get('/users/seller/:email',async(req,res)=>{
 
 })
 
+// get sellers from database 
+
+app.get('/users/sellers',verifyJWT,async(req,res)=>{
+  const query = {userType:'Seller'}
+  const result = await usersCollection.find(query).toArray();
+  res.send(result);
+})
 // get categories from database
 
 app.get("/categories", async (req, res) => {
