@@ -10,6 +10,24 @@ const port = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
+function verifyJWT(req, res, next) {
+  const authHeader = req.headers.authorization;
+  // console.log("Inside verifyjwt", authHeader);
+  if (!authHeader) {
+    return res.status(401).send("Unauthorised Access");
+  }
+  const token = authHeader.split(" ")[1];
+  console.log("Token", token);
+  jwt.verify(token, process.env.JWT_SECRET, function (err, decoded) {
+    if (err) {
+      return res.status(403).send({ message: "forbidden access" });
+    }
+    req.decoded = decoded;
+    next();
+  });
+  // console.log(token);
+}
+
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.ph4ajav.mongodb.net/?retryWrites=true&w=majority`;
 
 const client = new MongoClient(uri, {
@@ -31,7 +49,24 @@ dbConnect();
 // creating Database collection
 const usersCollection = client.db("antique-market").collection("users");
 const productsCollection = client.db("antique-market").collection("products");
-const categoriesCollection = client.db("antique-market").collection("categories");
+const categoriesCollection = client
+  .db("antique-market")
+  .collection("categories");
+
+
+  // verfiy if the user is admin or not 
+
+  const verifyAdmin = async(req,res,next) => {
+    console.log('Inside Verify Admin',req.decoded.email);
+    const decodeEmail = req.decoded.email;
+  
+    const query = {email: decodeEmail}
+    const user = await usersCollection.findOne(query); //await use na koray mara khaicilam
+    if(user?.role !== 'admin'){
+      return res.status(403).send({message: "Forbidden access"})
+    }
+    next()
+  }
 
 // save user email and generate jwt
 app.put("/user/:email", async (req, res) => {
@@ -55,46 +90,69 @@ app.put("/user/:email", async (req, res) => {
   }
 });
 
-// get categories from database 
+// get users admin role 
+app.get('/users/admin/:email',async(req,res)=>{
+  const email = req.params.email;
+  console.log(email);
+  const query = {email}
+  const user = await usersCollection.findOne(query);
+  res.send({isAdmin: user?.role === 'admin'})
 
-app.get('/categories',async(req,res)=>{
-  const query = {}
+})
+// get Seller role 
+app.get('/users/seller/:email',async(req,res)=>{
+  const email = req.params.email;
+  console.log(email);
+  const query = {email}
+  const user = await usersCollection.findOne(query);
+  res.send({isSeller: user?.userType === 'Seller'})
+
+})
+
+// get categories from database
+
+app.get("/categories", async (req, res) => {
+  const query = {};
   const result = await categoriesCollection.find(query).toArray();
   res.send(result);
-})
+});
 
-// get single category data 
-app.get('/categories/:id',async(req,res)=>{
+// get single category data
+app.get("/categories/:id", async (req, res) => {
   const id = req.params.id;
   console.log(id);
-  const query = {categoryId: id}
+  const query = { categoryId: id };
   const result = await productsCollection.find(query).toArray();
   res.send(result);
-})
-// add categories to the database 
+});
 
-app.post('/categories',async(req,res)=>{
-  try{  
-    const category = req.body;
-    const categoryName = req.body.categoryName;
-    const query = {categoryName: categoryName}
-    const result1 = await categoriesCollection.findOne(query)
-    console.log(categoryName,result1);
-    if(result1){
-      return res.send({success:false,message:"Category Already Added"})
-    }
-
-    const result = await categoriesCollection.insertOne(category)
-    res.send({success:true,result})
+//store categories in the database
+app.put('/categories',async(req,res)=>{
+  const category = req.body;
+  const filter = {categoryName: req.body.categoryName}
+  const options = { upsert: true}
+  const updateDoc = {
+    $set: category,
   }
-  catch(err) {
-    console.log(err);
-  }
+  const result = await categoriesCollection.updateOne(filter,updateDoc,options);
+  res.send({success:true,result});
 })
 
+
+
+// get products from database 
+app.get("/products",verifyJWT, async (req, res) => {
+  const query = {};
+  const result = await productsCollection.find(query).toArray();
+  res.send(result);
+});
 //add product to database
-app.post("/products", async(req,res) => {
+app.post("/products", async (req, res) => {
   try {
+    const decodedEmail = req.decoded.email;
+    if(decodedEmail !== req.body.emai){
+      return res.status(401).send("Unauthorized access")
+    }
     const product = req.body;
     console.log(product);
     const result = await productsCollection.insertOne(product);
