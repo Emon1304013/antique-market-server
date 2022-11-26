@@ -209,6 +209,17 @@ app.get("/products/seller/:email",verifyJWT,async(req,res)=>{
   const result = await productsCollection.find(query).toArray();
   res.send(result);
 })
+//API to set advertised to true. 
+app.patch('/products/advertise/:id',async(req,res)=>{
+  const id = req.params.id;
+  const filter = {_id: ObjectId(id)}
+  const options = {upsert: true}
+  const updateDoc = {
+    $set:{isAdvertised:true}
+  }
+  const result = await productsCollection.updateOne(filter,updateDoc,options);
+  res.send(result);
+})
 //add product to database
 app.post("/products",verifyJWT, async (req, res) => {
   try {
@@ -236,7 +247,7 @@ app.post('/bookings',async(req,res)=>{
 app.get('/bookings/:email',async(req,res)=>{
   const email = req.params.email;
   const query = {userEmail: email}
-  const result = await bookingsCollection.findOne(query);
+  const result = await bookingsCollection.find(query).toArray();
   res.send(result);
 })
 
