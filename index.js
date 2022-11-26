@@ -233,6 +233,13 @@ app.post('/bookings',async(req,res)=>{
   res.send(result);
 })
 
+app.get('/bookings/:email',async(req,res)=>{
+  const email = req.params.email;
+  const query = {userEmail: email}
+  const result = await bookingsCollection.findOne(query);
+  res.send(result);
+})
+
 app.get("/", (req, res) => {
   res.send(`Welcome to Antique Market Server`);
 });
