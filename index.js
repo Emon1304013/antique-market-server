@@ -50,6 +50,9 @@ const productsCollection = client.db("antique-market").collection("products");
 const categoriesCollection = client
   .db("antique-market")
   .collection("categories");
+const bookingsCollection = client
+  .db("antique-market")
+  .collection("bookings");
 
 
   // verfiy if the user is admin or not 
@@ -220,6 +223,15 @@ app.post("/products",verifyJWT, async (req, res) => {
     res.send(err);
   }
 });
+
+// add booking data to database 
+
+app.post('/bookings',async(req,res)=>{
+  const booking = req.body;
+  console.log(booking);
+  const result = await bookingsCollection.insertOne(booking)
+  res.send(result);
+})
 
 app.get("/", (req, res) => {
   res.send(`Welcome to Antique Market Server`);
