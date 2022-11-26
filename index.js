@@ -209,6 +209,12 @@ app.get("/products/seller/:email",verifyJWT,async(req,res)=>{
   const result = await productsCollection.find(query).toArray();
   res.send(result);
 })
+// Get advertised items from database 
+app.get('/products/advertise',verifyJWT,async(req,res)=>{
+  const query = {isAdvertised:true}
+  const result = await productsCollection.find(query).toArray();
+  res.send(result);
+})
 //API to set advertised to true. 
 app.patch('/products/advertise/:id',async(req,res)=>{
   const id = req.params.id;
