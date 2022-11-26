@@ -12,12 +12,10 @@ app.use(express.json());
 
 function verifyJWT(req, res, next) {
   const authHeader = req.headers.authorization;
-  console.log("Inside verifyjwt", authHeader);
   if (!authHeader) {
     return res.status(401).send("Unauthorised Access");
   }
   const token = authHeader.split(" ")[1];
-  console.log("Token", token);
   jwt.verify(token, process.env.JWT_SECRET, function (err, decoded) {
     if (err) {
       return res.status(403).send({ message: "forbidden access" });
@@ -57,7 +55,6 @@ const categoriesCollection = client
   // verfiy if the user is admin or not 
 
   const verifyAdmin = async(req,res,next) => {
-    console.log('Inside Verify Admin',req.decoded.email);
     const decodeEmail = req.decoded.email;
   
     const query = {email: decodeEmail}
@@ -119,14 +116,43 @@ app.get('/users/sellers',verifyJWT,async(req,res)=>{
   res.send(result);
 })
 
+// get buyers from database 
+
+app.get('/users/buyers',verifyJWT,async(req,res)=>{
+  const query = {userType:'Buyer'}
+  const result = await usersCollection.find(query).toArray();
+  res.send(result);
+})
+
+// update seller verify status 
+app.patch('/users/seller/verify/:email',async(req,res)=>{
+  const email = req.params.email;
+  const query = {email:email}
+  const options = {upsert:true}
+  const updateDoc = {
+    $set: {"isVerified":true}
+  }
+  const result = await usersCollection.updateOne(query,updateDoc,options);
+  res.send(result);
+})
+
 // Delete seller from Database  
 
-app.delete('/users/seller/:id',async(req,res)=>{
+app.delete('/users/seller/:id',verifyJWT,async(req,res)=>{
   const id = req.params.id;
   const query = {_id: ObjectId(id)}
   const result = await usersCollection.deleteOne(query);
   res.send(result);
 })
+
+// Delete Buyer from database 
+app.delete('/users/buyer/:id',verifyJWT,async(req,res)=>{
+  const id = req.params.id;
+  const query = {_id: ObjectId(id)}
+  const result = await usersCollection.deleteOne(query);
+  res.send(result);
+})
+
 // get categories from database
 
 app.get("/categories", async (req, res) => {
