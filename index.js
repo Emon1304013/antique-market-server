@@ -89,6 +89,14 @@ app.put("/user/:email", async (req, res) => {
   }
 });
 
+// get user data by email 
+
+app.get('/user/:email',verifyJWT,async(req,res)=>{
+  const query = { email: req.params.email};
+  const result = await usersCollection.findOne(query);
+  res.send(result);
+
+})
 // get users admin role 
 app.get('/users/admin/:email',async(req,res)=>{
   const email = req.params.email;
@@ -125,7 +133,7 @@ app.get('/users/buyers',verifyJWT,async(req,res)=>{
 })
 
 // update seller verify status 
-app.patch('/users/seller/verify/:email',async(req,res)=>{
+app.patch('/seller/verify/:email',async(req,res)=>{
   const email = req.params.email;
   const query = {email:email}
   const options = {upsert:true}
@@ -133,7 +141,7 @@ app.patch('/users/seller/verify/:email',async(req,res)=>{
     $set: {"isVerified":true}
   }
   const result = await usersCollection.updateOne(query,updateDoc,options);
-  res.send(result);
+  res.send({isVerified:true});
 })
 
 // Delete seller from Database  
@@ -165,12 +173,13 @@ app.get("/categories", async (req, res) => {
 app.get("/categories/:id", async (req, res) => {
   const id = req.params.id;
   console.log(id);
+
   const query = { categoryId: id };
   const result = await productsCollection.find(query).toArray();
   res.send(result);
 });
 
-//store categories in the database
+//store categories in the database, used PUT method to avoid duplicates
 app.put('/categories',async(req,res)=>{
   const category = req.body;
   const filter = {categoryName: req.body.categoryName}
