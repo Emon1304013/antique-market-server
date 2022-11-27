@@ -57,6 +57,12 @@ const bookingsCollection = client
 const paymentsCollection = client
   .db("antique-market")
   .collection("payments");
+const wishlistsCollection = client
+  .db("antique-market")
+  .collection("wishlist");
+const reportedItemsCollection = client
+  .db("antique-market")
+  .collection("reportedItems");
 
 
   // verfiy if the user is admin or not 
@@ -181,7 +187,7 @@ app.get("/categories/:id", async (req, res) => {
   const id = req.params.id;
   console.log(id);
 
-  const query = { categoryId: id };
+  const query = { categoryId: id, isPaid: false };
   const result = await productsCollection.find(query).toArray();
   res.send(result);
 });
@@ -201,10 +207,11 @@ app.put('/categories',async(req,res)=>{
 
 
 // get products from database 
-app.get("/products",verifyJWT, async (req, res) => {
-  const query = {};
-  const result = await productsCollection.find(query).toArray();
-  res.send(result);
+app.get("/products", async (req, res) => {
+  const query = {isPaid:false};
+  let paidProducts = [];
+  const products = await productsCollection.find(query).toArray();
+  res.send(products)
 });
 // Get Products from specific seller 
 app.get("/products/seller/:email",verifyJWT,async(req,res)=>{
@@ -267,7 +274,35 @@ app.get('/bookings/:email',async(req,res)=>{
   const email = req.params.email;
   console.log("Inside bookings",email);
   const query = {userEmail: email}
-  const result = await bookingsCollection.find(query).toArray();
+  const bookings = await bookingsCollection.find(query).toArray();
+  res.send(bookings);
+})
+
+//get wishlist item by user email
+// app.get('/wishtlist/:email',verifyJWT,async(req,res)=>{
+//   const email = req.params.email;
+//   const query = {userEmail:email}
+//   const result = await wishlistsCollection.find(query).toArray();
+//   res.send(result);
+// })
+
+// add product to reportedItems List
+
+app.patch('/reportedItem/:id',async(req,res)=>{
+  const id = req.params.id;
+  const query = {_id:ObjectId(id)};
+  const updateDoc = {
+    $set:{
+      reported:true,
+    }
+  }
+  const result = await productsCollection.updateOne(query,updateDoc);
+  res.send(result);
+})
+
+app.get('/reportedItems',verifyJWT,verifyAdmin,async(req,res)=>{
+  const query = {reported:true} 
+  const result = await productsCollection.find(query).toArray();
   res.send(result);
 })
 
@@ -288,6 +323,23 @@ app.post('/create-payment-intent', async (req, res) => {
   app.post('/payments',async(req,res)=>{
     const payment = req.body;
     const result = await paymentsCollection.insertOne(payment)
+    const id = payment.bookingId
+    const productId = payment.productId;
+    const filterBooking = {_id:ObjectId(id)}
+    const filterProduct = {_id: ObjectId(productId)}
+    const updateDoc = {
+      $set: {
+        paid: true,
+        transactionId: payment.transactionId
+      }
+    }
+    const updateProductDoc = {
+      $set: {
+        isPaid: true,
+      }
+    }
+    const updatedBooking = await bookingsCollection.updateOne(filterBooking,updateDoc);
+    const updateProduct = await productsCollection.updateOne(filterProduct,updateProductDoc);
     res.send(result);
   })
   res.send({
