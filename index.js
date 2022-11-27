@@ -7,6 +7,7 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
 const port = process.env.PORT || 5000;
 
+const stripe = require("stripe")(process.env.STRIPE_SECRET); 
 app.use(cors());
 app.use(express.json());
 
@@ -53,6 +54,9 @@ const categoriesCollection = client
 const bookingsCollection = client
   .db("antique-market")
   .collection("bookings");
+const paymentsCollection = client
+  .db("antique-market")
+  .collection("payments");
 
 
   // verfiy if the user is admin or not 
@@ -210,7 +214,7 @@ app.get("/products/seller/:email",verifyJWT,async(req,res)=>{
   res.send(result);
 })
 // Get advertised items from database 
-app.get('/products/advertise',verifyJWT,async(req,res)=>{
+app.get('/products/advertise',async(req,res)=>{
   const query = {isAdvertised:true}
   const result = await productsCollection.find(query).toArray();
   res.send(result);
@@ -250,12 +254,46 @@ app.post('/bookings',async(req,res)=>{
   res.send(result);
 })
 
+// get bookings data by id 
+app.get('/bookings/payment/:id',async(req,res)=>{
+  const bookingId = req.params.id;
+  console.log(bookingId);
+  const query = {_id:ObjectId(bookingId)}
+  const result = await bookingsCollection.findOne(query)
+  res.send(result);
+})
+
 app.get('/bookings/:email',async(req,res)=>{
   const email = req.params.email;
+  console.log("Inside bookings",email);
   const query = {userEmail: email}
   const result = await bookingsCollection.find(query).toArray();
   res.send(result);
 })
+
+// stripe payment 
+app.post('/create-payment-intent', async (req, res) => {
+  const booking = req.body;
+  const price = booking.price;
+  const amount = price * 100;
+
+  const paymentIntent = await stripe.paymentIntents.create({
+      currency: 'bdt',
+      amount: amount,
+      "payment_method_types": [
+          "card"
+      ]
+  });
+
+  app.post('/payments',async(req,res)=>{
+    const payment = req.body;
+    const result = await paymentsCollection.insertOne(payment)
+    res.send(result);
+  })
+  res.send({
+      clientSecret: paymentIntent.client_secret,
+  });
+});
 
 app.get("/", (req, res) => {
   res.send(`Welcome to Antique Market Server`);
