@@ -123,7 +123,14 @@ app.get("/users/admin/:email", verifyJWT, async (req, res) => {
   const user = await usersCollection.findOne(query);
   res.send({ isAdmin: user?.role === "admin" });
 });
-// get Seller role
+// get Buyer role
+app.get("/users/buyer/:email", verifyJWT, async (req, res) => {
+  const email = req.params.email;
+  const query = { email };
+  const user = await usersCollection.findOne(query);
+  res.send({ isBuyer: user?.userType === "Buyer" });
+});
+//get seller email
 app.get("/users/seller/:email", verifyJWT, async (req, res) => {
   const email = req.params.email;
   const query = { email };
