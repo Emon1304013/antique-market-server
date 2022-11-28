@@ -237,7 +237,7 @@ app.get("/products/seller/:email",verifyJWT,async(req,res)=>{
 
 // Get advertised items from database to display in the homepage
 app.get('/products/advertise',async(req,res)=>{
-  const query = {isAdvertised:true}
+  const query = {isAdvertised:true,isPaid:false}
   const result = await productsCollection.find(query).toArray();
   res.send(result);
 })
@@ -294,13 +294,6 @@ app.get('/bookings/:email',async(req,res)=>{
   res.send(bookings);
 })
 
-//get wishlist item by user email
-// app.get('/wishtlist/:email',verifyJWT,async(req,res)=>{
-//   const email = req.params.email;
-//   const query = {userEmail:email}
-//   const result = await wishlistsCollection.find(query).toArray();
-//   res.send(result);
-// })
 
 // add product to reportedItems List
 //update reported items status in the product list
@@ -315,6 +308,7 @@ app.patch('/reportedItem/:id',async(req,res)=>{
   const result = await productsCollection.updateOne(query,updateDoc);
   res.send(result);
 })
+
 //only admin can get the reported items and delete
 app.get('/reportedItems',verifyJWT,verifyAdmin,async(req,res)=>{
   const query = {reported:true} 
