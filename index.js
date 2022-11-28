@@ -78,6 +78,18 @@ const reportedItemsCollection = client
     next()
   }
 
+  // verify if the user is seller or not 
+  const verifySeller = async(req,res,next) => {
+    const decodeEmail = req.decoded.email;
+  
+    const query = {email: decodeEmail}
+    const user = await usersCollection.findOne(query); //await use na koray mara khaicilam
+    if(user?.userType !== 'Seller'){
+      return res.status(403).send({message: "Forbidden access"})
+    }
+    next()
+  }
+
 // save user email and generate jwt
 app.put("/user/:email", async (req, res) => {
   try {
@@ -111,7 +123,7 @@ app.get('/user/:email',verifyJWT,async(req,res)=>{
 
 })
 // get users admin role 
-app.get('/users/admin/:email',async(req,res)=>{
+app.get('/users/admin/:email',verifyJWT,async(req,res)=>{
   const email = req.params.email;
   console.log(email);
   const query = {email}
@@ -120,7 +132,7 @@ app.get('/users/admin/:email',async(req,res)=>{
 
 })
 // get Seller role 
-app.get('/users/seller/:email',async(req,res)=>{
+app.get('/users/seller/:email',verifyJWT,async(req,res)=>{
   const email = req.params.email;
   console.log(email);
   const query = {email}
@@ -146,7 +158,7 @@ app.get('/users/buyers',verifyJWT,async(req,res)=>{
 })
 
 // update seller verify status 
-app.patch('/seller/verify/:email',async(req,res)=>{
+app.patch('/seller/verify/:email',verifyJWT,verifyAdmin,async(req,res)=>{
   const email = req.params.email;
   const query = {email:email}
   const options = {upsert:true}
@@ -159,7 +171,7 @@ app.patch('/seller/verify/:email',async(req,res)=>{
 
 // Delete seller from Database  
 
-app.delete('/users/seller/:id',verifyJWT,async(req,res)=>{
+app.delete('/users/seller/:id',verifyJWT,verifyAdmin,async(req,res)=>{
   const id = req.params.id;
   const query = {_id: ObjectId(id)}
   const result = await usersCollection.deleteOne(query);
@@ -167,7 +179,7 @@ app.delete('/users/seller/:id',verifyJWT,async(req,res)=>{
 })
 
 // Delete Buyer from database 
-app.delete('/users/buyer/:id',verifyJWT,async(req,res)=>{
+app.delete('/users/buyer/:id',verifyJWT,verifyAdmin,async(req,res)=>{
   const id = req.params.id;
   const query = {_id: ObjectId(id)}
   const result = await usersCollection.deleteOne(query);
@@ -183,7 +195,7 @@ app.get("/categories", async (req, res) => {
 });
 
 // get single category data
-app.get("/categories/:id", async (req, res) => {
+app.get("/categories/:id",verifyJWT, async (req, res) => {
   const id = req.params.id;
   console.log(id);
 
@@ -192,8 +204,8 @@ app.get("/categories/:id", async (req, res) => {
   res.send(result);
 });
 
-//store categories in the database, used PUT method to avoid duplicates
-app.put('/categories',async(req,res)=>{
+//store categories in the database, used PUT method to avoid duplicates// only admin can update
+app.put('/categories',verifyJWT,verifyAdmin,async(req,res)=>{
   const category = req.body;
   const filter = {categoryName: req.body.categoryName}
   const options = { upsert: true}
@@ -205,14 +217,15 @@ app.put('/categories',async(req,res)=>{
 })
 
 
-
 // get products from database 
-app.get("/products", async (req, res) => {
+app.get("/products",verifyJWT, async (req, res) => {
   const query = {isPaid:false};
   let paidProducts = [];
   const products = await productsCollection.find(query).toArray();
   res.send(products)
 });
+
+
 // Get Products from specific seller 
 app.get("/products/seller/:email",verifyJWT,async(req,res)=>{
   const email = req.params.email;
@@ -220,14 +233,17 @@ app.get("/products/seller/:email",verifyJWT,async(req,res)=>{
   const result = await productsCollection.find(query).toArray();
   res.send(result);
 })
-// Get advertised items from database 
+
+
+// Get advertised items from database to display in the homepage
 app.get('/products/advertise',async(req,res)=>{
   const query = {isAdvertised:true}
   const result = await productsCollection.find(query).toArray();
   res.send(result);
 })
-//API to set advertised to true. 
-app.patch('/products/advertise/:id',async(req,res)=>{
+
+//API to set advertised to true when seller clicks on the advertise button
+app.patch('/products/advertise/:id',verifyJWT,verifySeller, async(req,res)=>{
   const id = req.params.id;
   const filter = {_id: ObjectId(id)}
   const options = {upsert: true}
@@ -238,7 +254,7 @@ app.patch('/products/advertise/:id',async(req,res)=>{
   res.send(result);
 })
 //add product to database
-app.post("/products",verifyJWT, async (req, res) => {
+app.post("/products",verifyJWT,verifySeller, async (req, res) => {
   try {
     const decodedEmail = req.decoded.email;
     if(decodedEmail !== req.decoded.email){
@@ -252,24 +268,24 @@ app.post("/products",verifyJWT, async (req, res) => {
   }
 });
 
+//delete product from database 
+app.delete('/products/:id',verifyJWT, async(req,res)=>{
+  const id = req.params.id;
+  const filter = {_id: ObjectId(id)}
+  const result = await productsCollection.deleteOne(filter);
+  res.send(result);
+})
+
 // add booking data to database 
 
-app.post('/bookings',async(req,res)=>{
+app.post('/bookings',verifyJWT, async(req,res)=>{
   const booking = req.body;
   console.log(booking);
   const result = await bookingsCollection.insertOne(booking)
   res.send(result);
 })
 
-// get bookings data by id 
-app.get('/bookings/payment/:id',async(req,res)=>{
-  const bookingId = req.params.id;
-  console.log(bookingId);
-  const query = {_id:ObjectId(bookingId)}
-  const result = await bookingsCollection.findOne(query)
-  res.send(result);
-})
-
+// get bookings of specific user by email 
 app.get('/bookings/:email',async(req,res)=>{
   const email = req.params.email;
   console.log("Inside bookings",email);
@@ -287,7 +303,7 @@ app.get('/bookings/:email',async(req,res)=>{
 // })
 
 // add product to reportedItems List
-
+//update reported items status in the product list
 app.patch('/reportedItem/:id',async(req,res)=>{
   const id = req.params.id;
   const query = {_id:ObjectId(id)};
@@ -299,7 +315,7 @@ app.patch('/reportedItem/:id',async(req,res)=>{
   const result = await productsCollection.updateOne(query,updateDoc);
   res.send(result);
 })
-
+//only admin can get the reported items and delete
 app.get('/reportedItems',verifyJWT,verifyAdmin,async(req,res)=>{
   const query = {reported:true} 
   const result = await productsCollection.find(query).toArray();
@@ -346,6 +362,16 @@ app.post('/create-payment-intent', async (req, res) => {
       clientSecret: paymentIntent.client_secret,
   });
 });
+
+// get bookings data by id to proceed for payment
+app.get('/bookings/payment/:id',verifyJWT,async(req,res)=>{
+  const bookingId = req.params.id;
+  console.log(bookingId);
+  const query = {_id:ObjectId(bookingId)}
+  const result = await bookingsCollection.findOne(query)
+  res.send(result);
+})
+
 
 app.get("/", (req, res) => {
   res.send(`Welcome to Antique Market Server`);
