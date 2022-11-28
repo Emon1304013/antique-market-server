@@ -364,7 +364,7 @@ app.post('/create-payment-intent', async (req, res) => {
 });
 
 // get bookings data by id to proceed for payment
-app.get('/bookings/payment/:id',verifyJWT,async(req,res)=>{
+app.get('/bookings/payment/:id',async(req,res)=>{
   const bookingId = req.params.id;
   console.log(bookingId);
   const query = {_id:ObjectId(bookingId)}
