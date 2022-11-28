@@ -233,12 +233,9 @@ app.get("/products/advertise", async (req, res) => {
 });
 
 //API to set advertised to true when seller clicks on the advertise button
-app.patch(
-  "/products/advertise/:id",
-  verifyJWT,
-  verifySeller,
-  async (req, res) => {
+app.patch("/products/advertise/:id",verifyJWT,verifySeller, async (req, res) => {
     const id = req.params.id;
+    console.log(id);
     const filter = { _id: ObjectId(id) };
     const options = { upsert: true };
     const updateDoc = {
